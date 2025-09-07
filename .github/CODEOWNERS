@@ -1,0 +1,29 @@
+# Global ownership - you own everything by default
+* @jingenito
+
+# Core library code
+/src/ @jingenito
+/include/ @jingenito
+
+# Headers are critical - might want extra review
+*.h @jingenito
+*.hpp @jingenito
+
+# Build system files
+CMakeLists.txt @jingenito
+Makefile @jingenito
+*.cmake @jingenito
+
+# Documentation
+README.md @jingenito
+/docs/ @jingenito
+*.md @jingenito
+
+# CI/CD and configuration
+/.github/ @jingenito
+.gitignore @jingenito
+.clang-format @jingenito
+
+# Tests (you might want other contributors to be able to review these)
+/tests/ @jingenito
+/test/ @jingenito
