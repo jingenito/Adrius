@@ -39,3 +39,12 @@
 
 # debug information files
 *.dwo
+
+# Ignore the entire .vscode directory
+.vscode/
+
+# But DO include these specific files for team-wide consistency
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/extensions.json
