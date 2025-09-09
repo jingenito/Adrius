@@ -1,5 +1,5 @@
 #include <iostream>
-#include <eigen3/Eigen/Dense>
+#include <Eigen/Dense>
 
 int main(int argc, char** argv) {
     // Create two 3x3 matrices with some example values

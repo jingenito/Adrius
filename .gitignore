@@ -41,6 +41,7 @@
 *.dwo
 
 # Ignore the entire .vscode directory
+.vs/
 .vscode/
 
 # But DO include these specific files for team-wide consistency
@@ -48,3 +49,8 @@
 !.vscode/launch.json
 !.vscode/tasks.json
 !.vscode/extensions.json
+
+# built binaries
+build/
+bin/
+out/
