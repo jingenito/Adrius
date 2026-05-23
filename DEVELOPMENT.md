@@ -243,6 +243,17 @@ cmake --build build --config Release
 cmake -B build -DADRIUS_USE_SYSTEM_EIGEN=ON
 ```
 
+### With Boost.Multiprecision Backend
+```bash
+# Auto-fetch Boost
+cmake -B build -DADRIUS_ENABLE_BOOST_MULTIPRECISION=ON
+
+# Or use system Boost (if installed)
+cmake -B build -DADRIUS_ENABLE_BOOST_MULTIPRECISION=ON -DADRIUS_USE_SYSTEM_BOOST=ON
+```
+
+Note: First build may take 2-5 minutes to build Boost dependencies. See `docs/boost-multiprecision-backend.md` for usage.
+
 ### Disable Tests
 ```bash
 cmake -B build -DADRIUS_BUILD_TESTS=OFF

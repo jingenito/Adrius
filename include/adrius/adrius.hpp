@@ -16,9 +16,12 @@
 #include <adrius/core/params.hpp>
 #include <adrius/core/traits.hpp>
 
-// Backend (pulls in Eigen3)
+// Backend (pulls in Eigen3; optionally Boost.Multiprecision)
 #include <adrius/backend/eigen.hpp>
 #include <adrius/backend/default_backend.hpp>
+#ifdef ADRIUS_HAS_BOOST_MULTIPRECISION
+#include <adrius/backend/boost_multiprecision.hpp>
+#endif
 
 // Utilities
 #include <adrius/util/rational_type.hpp>

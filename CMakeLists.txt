@@ -12,12 +12,14 @@ if(MSVC)
 endif()
 
 # Options
-option(ADRIUS_BUILD_TESTS     "Build test suite"                       ON)
-option(ADRIUS_BUILD_EXAMPLES  "Build example programs"                 ON)
-option(ADRIUS_USE_SYSTEM_EIGEN "Use an installed Eigen3 (skip fetch)"  OFF)
+option(ADRIUS_BUILD_TESTS              "Build test suite"                          ON)
+option(ADRIUS_BUILD_EXAMPLES           "Build example programs"                    ON)
+option(ADRIUS_USE_SYSTEM_EIGEN         "Use an installed Eigen3 (skip fetch)"      OFF)
+option(ADRIUS_ENABLE_BOOST_MULTIPRECISION "Enable Boost.Multiprecision backend"   OFF)
+option(ADRIUS_USE_SYSTEM_BOOST         "Use an installed Boost (skip fetch)"       OFF)
 # Guard install targets so that FetchContent consumers don't pollute their
 # install prefix. Defaults ON only when this is the top-level project.
-option(ADRIUS_ENABLE_INSTALL  "Generate install targets"
+option(ADRIUS_ENABLE_INSTALL           "Generate install targets"
        ${PROJECT_IS_TOP_LEVEL})
 
 include(FetchContent)
@@ -39,6 +41,21 @@ else()
     set(BUILD_TESTING ON CACHE BOOL "" FORCE)
 endif()
 
+# --- Boost.Multiprecision (optional) ---
+if(ADRIUS_ENABLE_BOOST_MULTIPRECISION)
+    if(ADRIUS_USE_SYSTEM_BOOST)
+        find_package(Boost 1.70 REQUIRED)
+    else()
+        FetchContent_Declare(
+            boost
+            GIT_REPOSITORY https://github.com/boostorg/boost.git
+            GIT_TAG        boost-1.85.0
+            GIT_SHALLOW    TRUE
+        )
+        FetchContent_MakeAvailable(boost)
+    endif()
+endif()
+
 # --- Header-only interface target ---
 add_library(adrius INTERFACE)
 target_include_directories(adrius INTERFACE
@@ -46,6 +63,10 @@ target_include_directories(adrius INTERFACE
     $<INSTALL_INTERFACE:include>
 )
 target_link_libraries(adrius INTERFACE Eigen3::Eigen)
+if(ADRIUS_ENABLE_BOOST_MULTIPRECISION)
+    target_link_libraries(adrius INTERFACE Boost::headers)
+    target_compile_definitions(adrius INTERFACE ADRIUS_HAS_BOOST_MULTIPRECISION=1)
+endif()
 target_compile_features(adrius INTERFACE cxx_std_20)
 add_library(adrius::adrius ALIAS adrius)
 
