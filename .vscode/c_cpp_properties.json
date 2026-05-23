@@ -1,0 +1,25 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            // Primary source: the compile database produced by CMake+Ninja.
+            // This gives cpptools exact include paths, defines, and compiler
+            // flags for every translation unit — no manual maintenance needed.
+            "compileCommands": "${workspaceFolder}/build/compile_commands.json",
+
+            // Fallback includes used before compile_commands.json is available
+            // (e.g., header-only files that don't appear in the database).
+            "includePath": [
+                "${workspaceFolder}/include",
+                "${workspaceFolder}/include/**"
+            ],
+            "cppStandard": "c++20",
+            "intelliSenseMode": "windows-msvc-x64",
+
+            // Let CMake Tools take over IntelliSense configuration once the
+            // extension has run "CMake: Configure" from the command palette.
+            "configurationProvider": "ms-vscode.cmake-tools"
+        }
+    ],
+    "version": 4
+}

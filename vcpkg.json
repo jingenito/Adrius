@@ -1,7 +1,0 @@
-{
-    "name": "adrius",
-    "version": "1.0.0",
-    "dependencies": [
-        "eigen3"
-    ]
-}

@@ -1,0 +1,8 @@
+@PACKAGE_INIT@
+
+include("${CMAKE_CURRENT_LIST_DIR}/AdriusTargets.cmake")
+
+# Eigen3 is a public dependency; downstream consumers need it too.
+find_dependency(Eigen3 3.4)
+
+check_required_components(adrius)

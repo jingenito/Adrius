@@ -1,0 +1,11 @@
+{
+    // CMake Tools: use the preset defined in CMakePresets.json
+    "cmake.useCMakePresets": "always",
+    "cmake.configureOnOpen": true,
+
+    // C/C++ file associations
+    "files.associations": {
+        "*.hpp": "cpp",
+        "*.h":   "cpp"
+    }
+}
