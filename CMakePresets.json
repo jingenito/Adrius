@@ -21,6 +21,22 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release"
             }
+        },
+        {
+            "name": "windows-msvc-debug-boost",
+            "displayName": "Windows MSVC Debug + Boost.Multiprecision (Ninja)",
+            "inherits": "windows-msvc-debug",
+            "cacheVariables": {
+                "ADRIUS_ENABLE_BOOST_MULTIPRECISION": "ON"
+            }
+        },
+        {
+            "name": "windows-msvc-release-boost",
+            "displayName": "Windows MSVC Release + Boost.Multiprecision (Ninja)",
+            "inherits": "windows-msvc-release",
+            "cacheVariables": {
+                "ADRIUS_ENABLE_BOOST_MULTIPRECISION": "ON"
+            }
         }
     ],
     "buildPresets": [
@@ -31,12 +47,25 @@
         {
             "name": "release",
             "configurePreset": "windows-msvc-release"
+        },
+        {
+            "name": "debug-boost",
+            "configurePreset": "windows-msvc-debug-boost"
+        },
+        {
+            "name": "release-boost",
+            "configurePreset": "windows-msvc-release-boost"
         }
     ],
     "testPresets": [
         {
             "name": "debug",
             "configurePreset": "windows-msvc-debug",
+            "output": { "outputOnFailure": true }
+        },
+        {
+            "name": "debug-boost",
+            "configurePreset": "windows-msvc-debug-boost",
             "output": { "outputOnFailure": true }
         }
     ]

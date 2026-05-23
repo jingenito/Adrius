@@ -7,11 +7,16 @@
             // flags for every translation unit — no manual maintenance needed.
             "compileCommands": "${workspaceFolder}/build/compile_commands.json",
 
-            // Fallback includes used before compile_commands.json is available
-            // (e.g., header-only files that don't appear in the database).
+            // Fallback includes used for header files opened directly that have
+            // no matching TU in compile_commands.json (e.g. boost_multiprecision.hpp).
+            // Paths under _deps are populated after "CMake: Configure" runs.
+            // libs/*/include covers all Boost libraries that multiprecision depends
+            // on transitively (config, type_traits, math, mpl, etc.).
             "includePath": [
                 "${workspaceFolder}/include",
-                "${workspaceFolder}/include/**"
+                "${workspaceFolder}/include/**",
+                "${workspaceFolder}/build/_deps/eigen-src",
+                "${workspaceFolder}/build/_deps/boost-src/libs/*/include"
             ],
             "cppStandard": "c++20",
             "intelliSenseMode": "windows-msvc-x64",

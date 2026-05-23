@@ -64,7 +64,14 @@ target_include_directories(adrius INTERFACE
 )
 target_link_libraries(adrius INTERFACE Eigen3::Eigen)
 if(ADRIUS_ENABLE_BOOST_MULTIPRECISION)
-    target_link_libraries(adrius INTERFACE Boost::headers)
+    if(ADRIUS_USE_SYSTEM_BOOST)
+        # System Boost is a proper imported target that survives install export.
+        target_link_libraries(adrius INTERFACE Boost::multiprecision)
+    else()
+        # FetchContent Boost targets are not exportable; restrict to build tree.
+        # Consumers who install adrius and want the Boost backend must supply Boost.
+        target_link_libraries(adrius INTERFACE $<BUILD_INTERFACE:Boost::multiprecision>)
+    endif()
     target_compile_definitions(adrius INTERFACE ADRIUS_HAS_BOOST_MULTIPRECISION=1)
 endif()
 target_compile_features(adrius INTERFACE cxx_std_20)

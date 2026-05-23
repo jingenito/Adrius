@@ -117,6 +117,11 @@ template <Backend B = DefaultBackend>
 [[nodiscard]] ILLLResult<B>
 illl(PreparedILLL<B> prepared, ILLLParams params = {})
 {
+    // ADL: for built-in types finds std::abs/round; for Boost MP types finds
+    // boost::multiprecision::abs/round via argument-dependent lookup.
+    using std::abs;
+    using std::round;
+
     const std::size_t n   = prepared.alpha.size();
     const std::size_t dim = n + 1;
 
@@ -141,7 +146,7 @@ illl(PreparedILLL<B> prepared, ILLLParams params = {})
         // b[0] = q · c_k  →  q = round(|b[0]| / c_k)
         const scalar_of<B> b0 = B::get(lll.reduced_basis, 0, 0);
         const integer_of<B> q =
-            static_cast<integer_of<B>>(std::round(std::abs(b0) / prepared.scale));
+            static_cast<integer_of<B>>(round(abs(b0) / prepared.scale));
 
         if (q > integer_of<B>{0}) {
             // b[i] = q·αᵢ − pᵢ  →  pᵢ = round(q·αᵢ − b[i])
@@ -152,8 +157,9 @@ illl(PreparedILLL<B> prepared, ILLLParams params = {})
                 const scalar_of<B> bi =
                     B::get(lll.reduced_basis, i + 1, 0);
                 relation[i + 1] = static_cast<integer_of<B>>(
-                    std::round(static_cast<scalar_of<B>>(q) * prepared.alpha[i] - bi));
-                max_err = std::max(max_err, std::abs(bi));
+                    round(static_cast<scalar_of<B>>(q) * prepared.alpha[i] - bi));
+                scalar_of<B> abs_bi = abs(bi);
+                if (abs_bi > max_err) max_err = abs_bi;
             }
             result.relations.push_back(std::move(relation));
             result.quality.push_back(max_err);
