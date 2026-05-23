@@ -102,7 +102,34 @@ int main() {
 }
 ```
 
-### Custom backend
+### Arbitrary-Precision Backend (Boost.Multiprecision)
+
+For ill-conditioned problems or high-precision approximations, use the Boost.Multiprecision backend:
+
+```cpp
+#include <adrius/adrius.hpp>
+
+int main() {
+    // 50 decimal digits (default)
+    using BoostPrecision = adrius::BoostBackendDefault;
+    
+    std::vector<BoostPrecision::scalar_type> alpha = {
+        BoostPrecision::scalar_type("1.414213562373095"),
+        BoostPrecision::scalar_type("3.141592653589793")
+    };
+    
+    auto result = adrius::illl<BoostPrecision>(
+        std::span<const BoostPrecision::scalar_type>{alpha},
+        adrius::ILLLParams{.max_denominator = 1'000'000'000LL}
+    );
+}
+```
+
+Build with: `cmake -B build -DADRIUS_ENABLE_BOOST_MULTIPRECISION=ON`
+
+See `docs/boost-multiprecision-backend.md` for detailed usage, precision options, and performance considerations.
+
+### Custom Backend
 
 Algorithms are written against the `adrius::Backend` concept — no Eigen dependency in algorithm headers.
 
@@ -156,6 +183,8 @@ cmake --install build
 | `ADRIUS_BUILD_TESTS` | `ON` | Build GoogleTest suite |
 | `ADRIUS_BUILD_EXAMPLES` | `ON` | Build example programs |
 | `ADRIUS_USE_SYSTEM_EIGEN` | `OFF` | Use an installed Eigen3 instead of fetching |
+| `ADRIUS_ENABLE_BOOST_MULTIPRECISION` | `OFF` | Enable Boost.Multiprecision arbitrary-precision backend |
+| `ADRIUS_USE_SYSTEM_BOOST` | `OFF` | Use an installed Boost instead of fetching (requires `ADRIUS_ENABLE_BOOST_MULTIPRECISION=ON`) |
 | `ADRIUS_ENABLE_INSTALL` | `ON` (top-level) | Generate install/find_package targets |
 
 ### Consuming via FetchContent

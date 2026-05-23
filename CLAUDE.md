@@ -35,11 +35,16 @@ Eigen3 is the default.
 ## Backend Abstraction Rules
 - Algorithm templates must only `#include` headers from `core/`. They must never
   directly include Eigen or any other backend header.
-- `backend/eigen.hpp` is the ONLY file permitted to `#include <Eigen/...>`.
+- `backend/eigen.hpp` and `backend/boost_multiprecision.hpp` are the ONLY files
+  permitted to `#include <Eigen/...>` or `<boost/...>`.
 - Every backend implementation must satisfy `static_assert(adrius::Backend<MyBackend>)`
   to catch regressions at compile time.
 - Basis vectors are the **columns** of `matrix_type` (matches Eigen column-major storage
   and Bosma-Smeets paper notation). The unimodular transform acts on the right: `M' = M·U`.
+- **Available backends**:
+  - `EigenBackend` — Default, double precision, built-in (no extra dependencies)
+  - `BoostBackend<Digits>` — Arbitrary precision via Boost.Multiprecision (requires CMake flag)
+  - Custom backend — Implement the Backend concept; see `docs/design-decisions.md` for interface
 
 ## Memory Model
 Prefer value types returned by value (NRVO eliminates copies). Smart pointer guidance:
