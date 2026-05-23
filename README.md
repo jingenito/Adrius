@@ -1,217 +1,204 @@
 # Adrius
 
-A modern C++ library for Diophantine approximation with pluggable linear algebra backends.
+A C++20 header-only library for Diophantine approximation.
+MIT license — InGenifold Research LLC.
 
-## Overview
+## Algorithms
 
-Adrius provides efficient algorithms for Diophantine approximation problems, including rational approximations to real numbers, simultaneous approximations, and related number-theoretic computations. Unlike other libraries in this domain that require GNU licensing, Adrius is released under the permissive MIT license.
+| Header | What it provides |
+|---|---|
+| `adrius/linalg/gram_schmidt.hpp` | Classical Gram-Schmidt orthogonalization |
+| `adrius/linalg/lll.hpp` | LLL lattice reduction (Lovász incremental updates) |
+| `adrius/approx/continued_fraction.hpp` | Lazy CF expansion range + convergents |
+| `adrius/approx/rational.hpp` | Best rational approximation via convergents |
+| `adrius/approx/simultaneous.hpp` | Simultaneous Diophantine approximation (LLL-based) |
+| `adrius/approx/illl.hpp` | ILLL — Iterated LLL (Bosma & Smeets 2010) |
+| `adrius/util/rational_type.hpp` | `Rational<Int>` — exact reduced-form arithmetic |
 
-## Key Features
+Include `<adrius/adrius.hpp>` to pull in everything with the default Eigen3 backend.
 
-- **MIT Licensed**: Use freely in both open-source and commercial projects
-- **Pluggable Backends**: Abstract linear algebra interface supports multiple libraries
-- **High Performance**: Optimized algorithms with efficient matrix operations
-- **Modern C++**: Clean, type-safe API with C++17/20 features
-- **Header-Only**: Easy integration with CMake FetchContent or package managers
+## Quick start
 
-## Algorithms Supported
+### Continued fraction expansion
 
-- Continued fraction expansions
-- Best rational approximations
-- Simultaneous Diophantine approximation
-- Lattice reduction algorithms
-- Padé approximation
-- Convergents and semiconvergents
+```cpp
+#include <adrius/adrius.hpp>
+#include <iostream>
+#include <numbers>
+#include <ranges>
 
-## Quick Start
+int main() {
+    // Lazy range — computes quotients on demand.
+    // Compose freely with std::views:
+    for (std::int64_t a : adrius::cf_view(std::numbers::pi) | std::views::take(8))
+        std::cout << a << ' ';   // 3 7 15 1 292 1 1 1
+    std::cout << '\n';
 
-### Installation
+    // Eager version when you want a vector:
+    auto qs = adrius::cf_expansion(std::numbers::phi, {.max_depth = 10});
 
-#### Using CMake FetchContent
-```cmake
-include(FetchContent)
-FetchContent_Declare(
-    adrius
-    GIT_REPOSITORY https://github.com/jingenito/adrius
-    GIT_TAG main
-)
-FetchContent_MakeAvailable(adrius)
-
-target_link_libraries(your_target adrius::adrius)
+    // Convergents p_k / q_k:
+    auto convs = adrius::cf_convergents(std::numbers::pi, {.max_depth = 6});
+    for (auto [p, q] : convs)
+        std::cout << p << '/' << q << '\n';  // 3/1  22/7  333/106  ...
+}
 ```
 
-#### Manual Installation
-```bash
-git clone https://github.com/jingenito/adrius.git
-cd adrius
-mkdir build && cd build
-cmake ..
-make install
+### Best rational approximation
+
+```cpp
+#include <adrius/adrius.hpp>
+#include <iostream>
+#include <numbers>
+
+int main() {
+    // 355/113 is the best approximation to π with denominator ≤ 1000.
+    auto r = adrius::best_rational(std::numbers::pi, {.max_denominator = 1000});
+    std::cout << r << '\n';  // 355/113
+}
 ```
 
-### Basic Usage
+### Simultaneous Diophantine approximation
+
+```cpp
+#include <adrius/adrius.hpp>
+#include <iostream>
+#include <numbers>
+#include <span>
+
+int main() {
+    // Find q, p₁, p₂ such that |q·αᵢ − pᵢ| is small for both αs.
+    const std::vector<double> alpha = {std::numbers::sqrt2, std::numbers::pi};
+
+    auto result = adrius::simultaneous_approx<adrius::EigenBackend>(
+        std::span<const double>{alpha}, /*scale=*/1e6);
+
+    std::cout << "q  = " << result.denominator << '\n';
+    std::cout << "p  = " << result.numerators[0] << ", " << result.numerators[1] << '\n';
+    std::cout << "err = " << result.quality << '\n';
+}
+```
+
+### LLL lattice reduction
 
 ```cpp
 #include <adrius/adrius.hpp>
 
 int main() {
-    // Find best rational approximation to π with denominator ≤ 1000
-    auto approx = adrius::best_approximation(M_PI, 1000);
-    std::cout << "π ≈ " << approx.numerator << "/" << approx.denominator << std::endl;
-    
-    // Continued fraction expansion
-    auto cf = adrius::continued_fraction(std::sqrt(2), 10);
-    
-    // Simultaneous approximation
-    std::vector<double> targets = {M_PI, M_E, std::sqrt(2)};
-    auto simultaneous = adrius::simultaneous_approximation(targets, 1000);
-    
-    return 0;
+    // Build a 3×3 basis (columns are basis vectors).
+    adrius::EigenBackend::matrix_type basis(3, 3);
+    basis << 1, -1,  3,
+             1,  0,  5,
+             1,  2,  6;
+
+    // Two-stage API: preprocess validates + computes initial GSO,
+    // lll_reduce iterates with Lovász incremental updates.
+    auto prepared = adrius::preprocess_lll<adrius::EigenBackend>(basis);
+    auto result   = adrius::lll_reduce<adrius::EigenBackend>(std::move(prepared));
+
+    // result.reduced_basis  — the LLL-reduced columns
+    // result.transform      — integer matrix U: reduced = original · U
+    // result.swap_count     — number of Lovász swaps performed
 }
 ```
 
-## Linear Algebra Backends
+### Custom backend
 
-Adrius abstracts linear algebra operations through a pluggable interface. The default implementation uses Eigen, but you can easily switch backends:
-
-### Default (Eigen)
-```cpp
-#include <adrius/backends/eigen_backend.hpp>
-using Backend = adrius::EigenBackend<double>;
-```
-
-### Custom Backend
-```cpp
-#include <adrius/backends/custom_backend.hpp>
-using Backend = adrius::CustomBackend<double>;
-```
-
-### Supported Backends
-- **Eigen** (default) - Header-only, high performance
-- **BLAS/LAPACK** - For maximum performance on large problems
-- **Custom** - Implement your own for specialized hardware
-
-## Configuration Options
+Algorithms are written against the `adrius::Backend` concept — no Eigen dependency in algorithm headers.
 
 ```cpp
-// Precision control
-adrius::Config config;
-config.precision = 1e-12;
-config.max_iterations = 1000;
+// my_backend.hpp
+#include <adrius/core/concepts.hpp>
 
-// Algorithm selection
-config.algorithm = adrius::Algorithm::LLL;  // or PSLQ, Ferguson-Forcade
+struct MyBackend {
+    using scalar_type     = float;
+    using integer_type    = std::int32_t;
+    using matrix_type     = /* your type */;
+    using vector_type     = /* your type */;
+    using int_matrix_type = /* your type */;
+
+    static std::size_t rows(const matrix_type&);
+    static std::size_t cols(const matrix_type&);
+    // ... (see docs/design-decisions.md §1 for the full required interface)
+};
+
+static_assert(adrius::Backend<MyBackend>);
+
+// Then use it:
+#include <adrius/linalg/lll.hpp>
+auto result = adrius::lll_reduce<MyBackend>(basis);
 ```
 
-## Examples
+## Building
 
-See the `examples/` directory for complete working examples:
-- `basic_approximation.cpp` - Simple rational approximations
-- `continued_fractions.cpp` - Working with continued fractions
-- `simultaneous.cpp` - Multi-dimensional approximation
-- `custom_backend.cpp` - Using different linear algebra backends
-
-## Dependencies
-
-### Required
-- C++17 compatible compiler
-- CMake 3.12+
-
-### Default Backend (Eigen)
-- Eigen3 (automatically fetched if not found)
-
-### Optional
-- BLAS/LAPACK (for alternative backends)
-- Boost (for extended precision types)
-
-## Building from Source
+Requires CMake 3.21+ and a C++20 compiler. Eigen3 and GoogleTest are fetched automatically.
 
 ```bash
-git clone https://github.com/jingenito/adrius.git
-cd adrius
-
-# Configure
-cmake -B build -DCMAKE_BUILD_TYPE=Release
+# Configure (Ninja + compile_commands.json for IntelliSense)
+cmake -B build --preset windows-msvc-debug   # Windows
+cmake -B build -DCMAKE_BUILD_TYPE=Debug \
+      -DCMAKE_EXPORT_COMPILE_COMMANDS=ON     # Linux / macOS
 
 # Build
 cmake --build build
 
-# Run tests
-cmake --build build --target test
+# Test
+ctest --test-dir build --output-on-failure
 
-# Install
+# Install (supports find_package)
 cmake --install build
 ```
 
-### CMake Options
-- `ADRIUS_BUILD_TESTS=ON` - Build test suite
-- `ADRIUS_BUILD_EXAMPLES=ON` - Build example programs  
-- `ADRIUS_USE_SYSTEM_EIGEN=OFF` - Use system Eigen instead of fetching
-- `ADRIUS_ENABLE_BENCHMARKS=OFF` - Build performance benchmarks
+### CMake options
 
-## Performance
+| Option | Default | Description |
+|---|---|---|
+| `ADRIUS_BUILD_TESTS` | `ON` | Build GoogleTest suite |
+| `ADRIUS_BUILD_EXAMPLES` | `ON` | Build example programs |
+| `ADRIUS_USE_SYSTEM_EIGEN` | `OFF` | Use an installed Eigen3 instead of fetching |
+| `ADRIUS_ENABLE_INSTALL` | `ON` (top-level) | Generate install/find_package targets |
 
-Adrius is designed for high performance:
-- Template-based design eliminates virtual function overhead
-- Efficient algorithms with optimal complexity
-- SIMD optimizations where applicable
-- Memory pool allocation for frequent operations
+### Consuming via FetchContent
 
-Benchmark results on modern hardware show competitive performance with specialized libraries while maintaining the flexibility of pluggable backends.
+```cmake
+include(FetchContent)
+FetchContent_Declare(adrius
+    GIT_REPOSITORY https://github.com/jingenito/Adrius.git
+    GIT_TAG        main
+    GIT_SHALLOW    TRUE
+)
+FetchContent_MakeAvailable(adrius)
 
-## License Advantage
-
-Most Diophantine approximation libraries require GNU GPL licensing, which restricts use in proprietary software. Adrius uses only MIT-compatible dependencies:
-
-- **Eigen**: Mozilla Public License 2.0
-- **Standard Library**: Implementation specific (typically permissive)
-
-This makes Adrius suitable for:
-- Commercial software development
-- Embedded systems
-- Academic research with publication requirements
-- Integration into larger proprietary codebases
-
-## Contributing
-
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-### Development Setup
-```bash
-git clone https://github.com/jingenito/adrius.git
-cd adrius
-cmake -B build -DADRIUS_BUILD_TESTS=ON -DADRIUS_BUILD_EXAMPLES=ON
-cmake --build build
+target_link_libraries(your_target PRIVATE adrius::adrius)
 ```
 
-## Documentation
+### Consuming via find_package (after install)
 
-- [API Reference](docs/api.md)
-- [Algorithm Details](docs/algorithms.md)
-- [Backend Development](docs/backends.md)
-- [Performance Guide](docs/performance.md)
-
-## Citation
-
-If you use Adrius in academic work, please cite:
-
-```bibtex
-@software{adrius,
-  title={Adrius: A C++ Library for Diophantine Approximation},
-  author={Your Name},
-  url={https://github.com/jingenito/adrius},
-  year={2025}
-}
+```cmake
+find_package(adrius 0.1 REQUIRED)
+target_link_libraries(your_target PRIVATE adrius::adrius)
 ```
+
+## Design
+
+- **Zero-overhead backend abstraction** — algorithms are templates constrained by `adrius::Backend` (C++20 concept). No virtual dispatch; the compiler sees the full concrete type.
+- **Two-stage API** — every algorithm exposes `preprocess_foo()` → `PreparedFoo` then `foo(PreparedFoo, params)`, plus a convenience overload that chains both. Lets you inspect, cache, or share the preprocessed lattice.
+- **Named result structs** — no `std::tuple` with enum indices. Every return value has descriptive field names.
+- **Value semantics** — results are returned by value (NRVO); `PreparedFoo` types are move-only. No owning pointers in the core API.
+- **Lazy sequences** — `CFExpansionView` is a C++20 input range; composes with `std::views::take` etc.
+
+See [`docs/design-decisions.md`](docs/design-decisions.md) for the full rationale behind every architectural choice.
+
+## Dependencies
+
+| Dependency | Version | How |
+|---|---|---|
+| C++20 compiler (MSVC 19.29+, GCC 11+, Clang 13+) | — | required |
+| CMake | 3.21+ | required |
+| Eigen3 | 3.4.0 | auto-fetched (or `ADRIUS_USE_SYSTEM_EIGEN=ON`) |
+| GoogleTest | 1.14.0 | auto-fetched when `ADRIUS_BUILD_TESTS=ON` |
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
-
-Copyright (c) 2025 InGenifold Research LLC
-
-## Acknowledgments
-
-- The Eigen team for providing an excellent linear algebra library
-- Contributors to the field of Diophantine approximation
-- The C++ community for modern language features that make this library possible
+MIT — see [LICENSE](LICENSE).  
+Copyright (c) 2025 InGenifold Research LLC.
