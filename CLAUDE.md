@@ -97,3 +97,8 @@ API patterns (CPP, CPPTestBench, ProjectBosmaSmeets), not for implementation.
 Linux (GCC/Clang), Windows (MSVC), macOS (AppleClang).
 Use CMake abstractions; no platform-specific `#ifdef`s unless truly unavoidable.
 MinGW is a secondary target; do not break it but do not optimize for it.
+
+## Agile Lifecycle Rules
+1. In Dev: Analyze the user-assigned task/feature, implement changes in a feature branch off of the latest in main, and author accompanying unit/integration tests.
+2. Self-Testing & QA Gating: Run the full local test suite. You must resolve all compilation errors, linter issues, and test failures internally before declaring a task finished.
+3. Ready for Review: Present a structured "Review Package" to the user containing an architectural diff summary, proof of passing test suites, and database schema updates (if any).

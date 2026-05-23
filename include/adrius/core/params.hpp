@@ -31,12 +31,20 @@ struct ILLLParams {
     // Forwarded to each inner LLL call.
     LLLParams lll{};
 
-    // Maximum outer ILLL iterations; 0 = no limit.
-    std::size_t max_iterations = 0;
+    // Maximum outer ILLL iterations.
+    std::size_t max_iterations = 30;
 
-    // Terminate early when the best approximation quality (||q·α - p||_∞ · q)
-    // stops improving by more than this relative fraction between iterations.
-    double convergence_tol = 1e-10;
+    // Stop once the denominator q exceeds this value; 0 = no limit.
+    // The algorithm guarantees bounded Dirichlet coefficient, so useful
+    // denominator ranges are typically 10^3–10^9.
+    std::int64_t max_denominator = 1'000'000LL;
+
+    // Bosma-Smeets ε ∈ (0, 1): controls the initial scale c₀ = ε^{n+1}
+    // and the per-iteration decay 2^{−n(n+1)/4}.  Default ε = 0.5 (d = 2).
+    double epsilon = 0.5;
+
+    // Stop early when max_i |q·αᵢ − pᵢ| drops below this threshold.
+    double quality_tol = 1e-12;
 };
 
 struct CFParams {
