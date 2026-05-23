@@ -98,7 +98,91 @@ Linux (GCC/Clang), Windows (MSVC), macOS (AppleClang).
 Use CMake abstractions; no platform-specific `#ifdef`s unless truly unavoidable.
 MinGW is a secondary target; do not break it but do not optimize for it.
 
+## Git Workflow & Branching
+
+**Always create a new branch off the latest `main` when starting work:**
+
+```bash
+git checkout main
+git pull origin main
+git checkout -b <branch-name>
+```
+
+### Branch Naming
+- `feature/description` — new feature (e.g., `feature/simultaneous-approx`)
+- `fix/description` — bug fix (e.g., `fix/lll-convergence-edge-case`)
+- `docs/description` — documentation/guides (e.g., `docs/instruction-files`)
+- `refactor/description` — code cleanup, no behavior change (e.g., `refactor/backend-abstraction`)
+- `test/description` — tests and test infrastructure (e.g., `test/property-based-lll`)
+
+### Commit Messages
+- **First line**: Imperative mood, < 70 chars, starts with verb
+  - ✅ "Implement ILLL algorithm from Bosma & Smeets (2010)"
+  - ✅ "Add comprehensive ILLL algorithm documentation"
+  - ❌ "ILLL implementation" (not imperative)
+  - ❌ "This commit implements the ILLL algorithm..." (too wordy)
+- **Body** (if needed): Detailed explanation of *why*, not *what*
+  - Explain trade-offs, constraints, design decisions
+  - Reference issue numbers, papers, or related commits
+- **Sign-off**: Always include `Co-Authored-By: Claude Haiku 4.5 <noreply@anthropic.com>`
+
+Example:
+```
+Implement ILLL algorithm from Bosma & Smeets (2010) with correct scale update
+
+- Add ILLLResult<B> struct for storing approximation relations
+- Implement preprocess_illl<B>() building Bosma-Smeets lattice with c₀=ε^{n+1}
+- Implement illl<B>() iteration with scale_ratio = 2^{-n(n+1)/4}
+
+Fixes issue with denominator extraction by using balanced lattice construction.
+
+Co-Authored-By: Claude Haiku 4.5 <noreply@anthropic.com>
+```
+
+### Pull Request Workflow
+1. **Before opening PR**: Run full test suite locally, verify all tests pass
+2. **PR description**: Use `.github/pull_request_template.md` format
+   - Summary of what changed and why
+   - Type of change (Feature/Fix/Docs/Refactor)
+   - Test results proof
+   - Research papers referenced (if applicable)
+3. **After merge**: Branch is deleted (locally and remotely)
+
+## Documentation Requirements
+
+### Algorithm or API Changes
+- **Must include** `docs/algorithm-name.md` with:
+  - Overview and purpose
+  - Mathematical foundation (with paper references)
+  - Implementation details and key decisions
+  - Usage examples
+  - References section citing all papers used
+- **Must reference papers** in PR description with specific sections/equations used
+- **Must update** README.md if adding new public API or changing behavior
+
+### Code Comments
+- No comments explaining *what* the code does (variable names and function names do that)
+- Only comments explaining *why*:
+  - Non-obvious design decisions
+  - Subtle invariants or constraints
+  - Workarounds for specific bugs
+  - References to papers/algorithms (e.g., "Lovász incremental update from LLL paper §3")
+- Example: ✅ "Rescale only column 0; keeps basis nearly reduced for amortized cost"
+- Example: ❌ "Rescale column 0 by the scale ratio"
+
+### Test Requirements
+- Every algorithm must have at minimum one hand-computed example test
+- Tests should verify both correctness and bounds
+- Test names describe what is being verified, not just "Test1"
+- Example: ✅ `TEST(ILLL, OneDimensionalBoundedDirichletCoefficient)`
+- Example: ❌ `TEST(ILLL, Test1)`
+
 ## Agile Lifecycle Rules
-1. In Dev: Analyze the user-assigned task/feature, implement changes in a feature branch off of the latest in main, and author accompanying unit/integration tests.
-2. Self-Testing & QA Gating: Run the full local test suite. You must resolve all compilation errors, linter issues, and test failures internally before declaring a task finished.
-3. Ready for Review: Present a structured "Review Package" to the user containing an architectural diff summary, proof of passing test suites, and database schema updates (if any).
+1. **In Dev**: Always create a feature branch off the latest `main`. Implement changes and author unit/integration tests. See "Git Workflow & Branching" above.
+2. **Self-Testing & QA Gating**: Run the full local test suite (`ctest --test-dir build --output-on-failure`). Resolve all compilation errors, linter issues, and test failures before submitting for review.
+3. **Ready for Review**: Push branch and create PR. Include:
+   - Summary of changes and why they were made
+   - Type of change (Feature/Fix/Docs/Refactor)
+   - Proof of passing test suite (ctest output or screenshot)
+   - Research papers referenced (with specific sections if applicable)
+   - For algorithm changes: link to `docs/algorithm-name.md`
