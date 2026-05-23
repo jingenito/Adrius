@@ -40,15 +40,18 @@
 # debug information files
 *.dwo
 
-# Ignore the entire .vscode directory
+# Ignore VS and most VS Code files, but allow specific shared configs below.
+# Must use .vscode/* (not .vscode/) so that negation exceptions can take effect.
 .vs/
-.vscode/
-
-# But DO include these specific files for team-wide consistency
+.vscode/*
 !.vscode/settings.json
 !.vscode/launch.json
 !.vscode/tasks.json
 !.vscode/extensions.json
+!.vscode/c_cpp_properties.json
+
+# User-local cmake presets (machine-specific kit/toolchain selections)
+CMakeUserPresets.json
 
 # built binaries
 build/
