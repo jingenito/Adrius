@@ -16,5 +16,15 @@ foreach(target IN LISTS ADRIUS_TEST_TARGETS)
         $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
         $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
     )
-    gtest_discover_tests(${target})
+    gtest_add_tests(TARGET ${target} AUTO)
 endforeach()
+
+if(ADRIUS_ENABLE_BOOST_MULTIPRECISION)
+    add_executable(test_boost_backend test_boost_backend.cpp)
+    target_link_libraries(test_boost_backend PRIVATE adrius::adrius GTest::gtest_main)
+    target_compile_options(test_boost_backend PRIVATE
+        $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
+        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
+    )
+    gtest_add_tests(TARGET test_boost_backend AUTO)
+endif()

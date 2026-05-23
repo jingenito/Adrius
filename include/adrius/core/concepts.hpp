@@ -25,8 +25,6 @@ concept Backend =
         typename B::vector_type;      // dense floating-point column vector
         typename B::int_matrix_type;  // dense integer matrix (unimodular transforms)
     }
-    && std::floating_point<typename B::scalar_type>
-    && std::signed_integral<typename B::integer_type>
     && requires(
         typename B::matrix_type&           M,
         const typename B::matrix_type&     cM,

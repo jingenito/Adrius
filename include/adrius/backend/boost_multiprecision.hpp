@@ -1,195 +1,145 @@
 // Copyright (c) 2025 InGenifold Research LLC. MIT License.
 #pragma once
 
+// ============================================================
+// This is the ONLY header permitted to include Boost headers.
+// Algorithms must never include this file directly — they use
+// only core/concepts.hpp and the Backend abstraction.
+// ============================================================
+
 #include <adrius/core/concepts.hpp>
+
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
-#include <boost/multiprecision/mpfr.hpp>
+
+#if defined(_MSC_VER)
+#  pragma warning(push, 0)
+#elif defined(__GNUC__) || defined(__clang__)
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wall"
+#  pragma GCC diagnostic ignored "-Wextra"
+#endif
 
 #include <Eigen/Dense>
-#include <cmath>
-#include <stdexcept>
-#include <vector>
+
+#if defined(_MSC_VER)
+#  pragma warning(pop)
+#elif defined(__GNUC__) || defined(__clang__)
+#  pragma GCC diagnostic pop
+#endif
+#include <cstddef>
+#include <span>
 
 namespace adrius {
 
 // ── Boost.Multiprecision Backend ──────────────────────────────────────────
 //
-// Provides arbitrary-precision arithmetic via Boost.Multiprecision.
-// Useful when Eigen's double precision (15-17 significant digits) is insufficient
-// for ill-conditioned problems or high-denominator approximations.
+// Arbitrary-precision arithmetic via Boost.Multiprecision. Use when Eigen's
+// double precision (15-17 digits) is insufficient for ill-conditioned problems
+// or high-denominator approximations.
 //
 // Usage:
-//   // 100 decimal digits of precision (default: 50)
-//   using HighPrecision = adrius::BoostBackend<100>;
-//   auto result = adrius::illl<HighPrecision>(alpha, params);
+//   using HP = adrius::BoostBackend<100>;   // 100 decimal digits
+//   auto result = adrius::illl<HP>(alpha, params);
 //
-// Type Parameters:
-//   Digits: Decimal digits of precision for floating-point (default 50)
-//   - 50 ≈ 166 bits (enough for most uses)
-//   - 100 ≈ 332 bits (high-precision computations)
-//   - 1000+ for extreme cases (slower)
+// Template parameter:
+//   Digits — decimal digits of precision for the floating-point scalar type.
+//             50 ≈ 166 bits, 100 ≈ 332 bits.
 
 template <unsigned Digits = 50>
 struct BoostBackend {
-    // Floating-point type: decimal float with configurable precision
-    using scalar_type = boost::multiprecision::number<
-        boost::multiprecision::cpp_dec_float<Digits>>;
-
-    // Integer type: arbitrary-precision signed integer
-    using integer_type = boost::multiprecision::cpp_int;
-
-    // Dense matrix over scalar_type
-    using matrix_type = Eigen::Matrix<scalar_type, Eigen::Dynamic, Eigen::Dynamic>;
-
-    // Dense vector
-    using vector_type = Eigen::Matrix<scalar_type, Eigen::Dynamic, 1>;
-
-    // Integer matrix for unimodular transforms
+    using scalar_type     = boost::multiprecision::number<
+                                boost::multiprecision::cpp_dec_float<Digits>>;
+    using integer_type    = boost::multiprecision::cpp_int;
+    using matrix_type     = Eigen::Matrix<scalar_type, Eigen::Dynamic, Eigen::Dynamic>;
+    using vector_type     = Eigen::Matrix<scalar_type, Eigen::Dynamic, 1>;
     using int_matrix_type = Eigen::Matrix<integer_type, Eigen::Dynamic, Eigen::Dynamic>;
 
-    // ── Basic matrix operations ───────────────────────────────────────────
-
-    static std::size_t rows(const matrix_type& m) { return m.rows(); }
-    static std::size_t cols(const matrix_type& m) { return m.cols(); }
-
-    static scalar_type get(const matrix_type& m, std::size_t i, std::size_t j) {
-        return m(i, j);
+    // --- Dimensions -------------------------------------------------
+    [[nodiscard]] static std::size_t rows(const matrix_type& M) noexcept {
+        return static_cast<std::size_t>(M.rows());
+    }
+    [[nodiscard]] static std::size_t cols(const matrix_type& M) noexcept {
+        return static_cast<std::size_t>(M.cols());
     }
 
-    static void set(matrix_type& m, std::size_t i, std::size_t j, const scalar_type& val) {
-        m(i, j) = val;
+    // --- Column access ----------------------------------------------
+    [[nodiscard]] static vector_type col(const matrix_type& M, std::size_t k) {
+        return M.col(idx(k));
+    }
+    static void set_col(matrix_type& M, std::size_t k, const vector_type& v) {
+        M.col(idx(k)) = v;
     }
 
-    // ── Integer matrix operations ─────────────────────────────────────────
-
-    static integer_type get_int(const int_matrix_type& m, std::size_t i, std::size_t j) {
-        return m(i, j);
+    // --- Floating-point element access (GSO coefficient matrix) -----
+    [[nodiscard]] static scalar_type get(const matrix_type& M,
+                                          std::size_t r, std::size_t c) {
+        return M(idx(r), idx(c));
+    }
+    static void set(matrix_type& M, std::size_t r, std::size_t c, const scalar_type& s) {
+        M(idx(r), idx(c)) = s;
     }
 
-    static void set_int(int_matrix_type& m, std::size_t i, std::size_t j,
-                        const integer_type& val) {
-        m(i, j) = val;
+    // --- Integer element access (unimodular transform U) ------------
+    [[nodiscard]] static integer_type int_get(const int_matrix_type& M,
+                                               std::size_t r, std::size_t c) {
+        return M(idx(r), idx(c));
+    }
+    static void int_set(int_matrix_type& M,
+                        std::size_t r, std::size_t c, const integer_type& z) {
+        M(idx(r), idx(c)) = z;
     }
 
-    // ── Factory functions ─────────────────────────────────────────────────
-
-    static matrix_type make_zero_matrix(std::size_t rows, std::size_t cols) {
-        return matrix_type::Zero(rows, cols);
+    // --- Vector arithmetic ------------------------------------------
+    [[nodiscard]] static scalar_type inner_product(const vector_type& u,
+                                                    const vector_type& v) {
+        return u.dot(v);
+    }
+    [[nodiscard]] static scalar_type norm_sq(const vector_type& v) {
+        return v.squaredNorm();
+    }
+    [[nodiscard]] static vector_type scale(const vector_type& v, const scalar_type& s) {
+        return s * v;
+    }
+    [[nodiscard]] static vector_type add(const vector_type& u, const vector_type& v) {
+        return u + v;
+    }
+    [[nodiscard]] static vector_type subtract(const vector_type& u, const vector_type& v) {
+        return u - v;
     }
 
-    static vector_type make_zero_vector(std::size_t size) {
-        return vector_type::Zero(size);
+    // --- Factory functions ------------------------------------------
+    [[nodiscard]] static matrix_type make_zero_matrix(std::size_t r, std::size_t c) {
+        return matrix_type::Zero(idx(r), idx(c));
+    }
+    [[nodiscard]] static vector_type make_zero_vector(std::size_t r) {
+        return vector_type::Zero(idx(r));
+    }
+    [[nodiscard]] static int_matrix_type identity_int(std::size_t r) {
+        return int_matrix_type::Identity(idx(r), idx(r));
     }
 
-    static int_matrix_type make_zero_int_matrix(std::size_t rows, std::size_t cols) {
-        return int_matrix_type::Zero(rows, cols);
+    // --- Zero-copy view of user-provided data -----------------------
+    [[nodiscard]] static Eigen::Map<const vector_type>
+    map_vector(std::span<const scalar_type> s) noexcept {
+        return {s.data(), idx(s.size())};
     }
 
-    static int_matrix_type make_identity_int_matrix(std::size_t size) {
-        return int_matrix_type::Identity(size, size);
-    }
-
-    // Map a std::span into an Eigen vector (zero-copy)
-    static vector_type map_vector(std::span<const scalar_type> data) {
-        if (data.empty()) throw std::runtime_error("Cannot map empty span");
-        return Eigen::Map<const vector_type>(data.data(), data.size());
-    }
-
-    // ── Vector operations ─────────────────────────────────────────────────
-
-    static scalar_type inner_product(const vector_type& a, const vector_type& b) {
-        if (a.size() != b.size())
-            throw std::runtime_error(
-                "inner_product: size mismatch " + std::to_string(a.size()) + " vs " +
-                std::to_string(b.size()));
-        return a.dot(b);
-    }
-
-    static scalar_type squared_norm(const vector_type& v) { return v.squaredNorm(); }
-
-    static scalar_type norm(const vector_type& v) { return v.norm(); }
-
-    static vector_type scale(const vector_type& v, const scalar_type& s) { return v * s; }
-
-    static vector_type add(const vector_type& a, const vector_type& b) { return a + b; }
-
-    static vector_type subtract(const vector_type& a, const vector_type& b) {
-        return a - b;
-    }
-
-    // ── Conversions ───────────────────────────────────────────────────────
-
-    // Convert scalar to double (may lose precision if value uses full width)
-    static double to_double(const scalar_type& val) {
-        return static_cast<double>(val);
-    }
-
-    // Convert scalar to integer (rounds toward zero)
-    static integer_type to_integer(const scalar_type& val) {
-        return integer_type(val);  // Truncates toward zero
-    }
-
-    // Convert integer to scalar
-    static scalar_type from_integer(const integer_type& val) { return scalar_type(val); }
-
-    // ── Utility ───────────────────────────────────────────────────────────
-
-    // Absolute value
-    static scalar_type abs(const scalar_type& val) { return boost::multiprecision::abs(val); }
-
-    // Maximum of two values
-    static scalar_type max(const scalar_type& a, const scalar_type& b) {
-        return a > b ? a : b;
-    }
-
-    // Minimum of two values
-    static scalar_type min(const scalar_type& a, const scalar_type& b) {
-        return a < b ? a : b;
-    }
-
-    // Square root
-    static scalar_type sqrt(const scalar_type& val) {
-        if (val < 0)
-            throw std::domain_error("sqrt of negative number");
-        return boost::multiprecision::sqrt(val);
-    }
-
-    // Floor function
-    static scalar_type floor(const scalar_type& val) {
-        return boost::multiprecision::floor(val);
-    }
-
-    // Ceiling function
-    static scalar_type ceil(const scalar_type& val) {
-        return boost::multiprecision::ceil(val);
-    }
-
-    // Round to nearest integer
-    static scalar_type round(const scalar_type& val) {
-        return boost::multiprecision::round(val);
-    }
-
-    // Power function
-    static scalar_type pow(const scalar_type& base, double exponent) {
-        return boost::multiprecision::pow(base, exponent);
+private:
+    static constexpr Eigen::Index idx(std::size_t n) noexcept {
+        return static_cast<Eigen::Index>(n);
     }
 };
 
 // ── Type aliases for common precisions ────────────────────────────────────
 
-// Standard precision: 50 decimal digits (166 bits, ~1e-50 error)
-using BoostBackendDefault = BoostBackend<50>;
-
-// High precision: 100 decimal digits (332 bits, ~1e-100 error)
-using BoostBackendHighPrecision = BoostBackend<100>;
-
-// Very high precision: 200 decimal digits (664 bits, ~1e-200 error)
-using BoostBackendVeryHighPrecision = BoostBackend<200>;
+using BoostBackendDefault         = BoostBackend<50>;   // ~1e-50 error
+using BoostBackendHighPrecision   = BoostBackend<100>;  // ~1e-100 error
+using BoostBackendVeryHighPrecision = BoostBackend<200>; // ~1e-200 error
 
 // ── Static assertion for concept compliance ───────────────────────────────
 
 static_assert(Backend<BoostBackendDefault>,
-              "BoostBackendDefault must satisfy Backend concept");
+              "BoostBackendDefault must satisfy the Backend concept");
 
-}  // namespace adrius
+} // namespace adrius

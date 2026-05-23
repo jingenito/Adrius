@@ -138,6 +138,9 @@ lll_reduce(PreparedLLL<B> prepared, LLLParams params = {})
 {
     using S = scalar_of<B>;
     using I = integer_of<B>;
+    // ADL: finds boost::multiprecision::abs/round for MP types, std:: for built-ins.
+    using std::abs;
+    using std::round;
 
     const std::size_t n = B::cols(prepared.basis);
     std::size_t k = 1;
@@ -151,8 +154,8 @@ lll_reduce(PreparedLLL<B> prepared, LLLParams params = {})
             const std::size_t j = k - 1 - ji;
             const S mu_kj = B::get(prepared.gso.mu, k, j);
 
-            if (std::abs(mu_kj) > static_cast<S>(params.eta)) {
-                const I q  = static_cast<I>(std::round(mu_kj));
+            if (abs(mu_kj) > static_cast<S>(params.eta)) {
+                const I q  = static_cast<I>(round(mu_kj));
                 const S qf = static_cast<S>(q);
 
                 // b_k ← b_k − q·b_j
