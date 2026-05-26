@@ -1,8 +1,8 @@
 // Copyright (c) 2025 InGenifold Research LLC. MIT License.
 //
-// Example: simultaneous Diophantine approximation (Bosma-Smeets workflow)
+// Example: simultaneous Diophantine approximation
 //
-// Usage:  bosma_smeets <alpha_1> <alpha_2> … [--scale N]
+// Usage:  simultaneous <alpha_1> <alpha_2> … [--scale N]
 //
 // Finds a common denominator q and integers p_1, …, p_n such that
 // |q·αᵢ − pᵢ| is small for all i simultaneously, using LLL lattice reduction.
@@ -30,7 +30,7 @@ static double parse_double(std::string_view s) {
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
-        std::cerr << "usage: bosma_smeets <alpha_1> [alpha_2 …] [--scale N]\n";
+        std::cerr << "usage: simultaneous <alpha_1> [alpha_2 …] [--scale N]\n";
         return 1;
     }
 
