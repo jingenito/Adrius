@@ -136,26 +136,36 @@ illl(PreparedILLL<B> prepared, ILLLParams params = {})
     result.quality.reserve(params.max_iterations);
 
     for (std::size_t iter = 0; iter < params.max_iterations; ++iter) {
-        // Bail if scale has dropped so far that gram_schmidt will fail.
-        // The basis becomes ill-conditioned and column 0 is essentially zero.
-        if (iter > 0 && prepared.scale < 1e-14)
+        // Bail if c_k² < zero_threshold — column 0's squared norm is dominated
+        // by c_k and would fall below gram_schmidt's linear-dependence threshold.
+        // Compare c_k² (not c_k) against zero_threshold: both have units of
+        // squared norm, making the comparison dimensionally consistent.
+        if (iter > 0 &&
+            prepared.scale * prepared.scale <
+                static_cast<scalar_of<B>>(params.lll.gso.zero_threshold))
             break;
 
         auto lll = lll_reduce<B>(prepared.lattice, params.lll);
 
         // b[0] = q · c_k  →  q = round(|b[0]| / c_k)
+        // LLL may return a column with b[0] < 0 (negated shortest vector).
+        // All rows share the same sign flip, so we track the sign and negate
+        // the error rows consistently when extracting p_i.
         const scalar_of<B> b0 = B::get(lll.reduced_basis, 0, 0);
         const integer_of<B> q =
             static_cast<integer_of<B>>(round(abs(b0) / prepared.scale));
 
         if (q > integer_of<B>{0}) {
-            // b[i] = q·αᵢ − pᵢ  →  pᵢ = round(q·αᵢ − b[i])
+            // b[i] corrected for sign of b[0]:
+            //   b[i]_signed = sign(b[0]) · b[i]   →   p_i = round(q·α_i − b[i]_signed)
+            const bool b0_negative = (b0 < scalar_of<B>{0});
             std::vector<integer_of<B>> relation(dim);
             relation[0] = q;
             scalar_of<B> max_err{0};
             for (std::size_t i = 0; i < n; ++i) {
-                const scalar_of<B> bi =
+                const scalar_of<B> bi_raw =
                     B::get(lll.reduced_basis, i + 1, 0);
+                const scalar_of<B> bi = b0_negative ? -bi_raw : bi_raw;
                 relation[i + 1] = static_cast<integer_of<B>>(
                     round(static_cast<scalar_of<B>>(q) * prepared.alpha[i] - bi));
                 scalar_of<B> abs_bi = abs(bi);
@@ -171,13 +181,14 @@ illl(PreparedILLL<B> prepared, ILLLParams params = {})
                 break;
         }
 
-        // Rescale column 0 of the LLL-reduced basis by c_{k+1}/c_k.
-        // The other columns are unchanged.  This leaves the basis nearly
-        // reduced for the new lattice, amortising the cost of the next LLL.
+        // Warm-start Λ_{k+1}: c_k only appears in row 0, so scale row 0 of
+        // ALL columns by c_{k+1}/c_k.  Rows 1..n (the ℤ-linear combinations
+        // of α_i) are unchanged.  The result is a valid basis for Λ_{k+1}
+        // that is nearly reduced, amortising the cost of the next LLL call.
         prepared.lattice = std::move(lll.reduced_basis);
-        for (std::size_t i = 0; i < dim; ++i)
-            B::set(prepared.lattice, i, 0,
-                   B::get(prepared.lattice, i, 0) * scale_ratio);
+        for (std::size_t j = 0; j < dim; ++j)
+            B::set(prepared.lattice, 0, j,
+                   B::get(prepared.lattice, 0, j) * scale_ratio);
         prepared.scale *= scale_ratio;
     }
 

@@ -1,4 +1,4 @@
-foreach(example cf_expansion bosma_smeets)
+foreach(example cf_expansion simultaneous illl lll best_rational)
     add_executable(${example} ${example}/main.cpp)
     target_link_libraries(${example} PRIVATE adrius::adrius)
     target_compile_options(${example} PRIVATE
