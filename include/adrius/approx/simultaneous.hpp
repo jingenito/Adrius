@@ -66,6 +66,9 @@ template <Backend B = DefaultBackend>
 preprocess_simultaneous(std::span<const scalar_of<B>> alpha,
                         scalar_of<B> N)
 {
+    // ADL: finds boost::multiprecision::round for MP types, std:: for built-ins.
+    using std::round;
+
     if (alpha.empty())
         throw DomainError("preprocess_simultaneous: alpha must be non-empty");
     if (N <= scalar_of<B>{0})
@@ -82,7 +85,7 @@ preprocess_simultaneous(std::span<const scalar_of<B>> alpha,
     // First column: (N, N·α_1, …, N·α_n)ᵀ
     B::set(p.lattice, 0, 0, N);
     for (std::size_t i = 0; i < n; ++i)
-        B::set(p.lattice, i + 1, 0, std::round(N * alpha[i]));
+        B::set(p.lattice, i + 1, 0, round(N * alpha[i]));
 
     // Remaining columns: identity block
     for (std::size_t j = 1; j < dim; ++j)
@@ -96,12 +99,16 @@ template <Backend B = DefaultBackend>
 [[nodiscard]] SimultApproxResult<B>
 simultaneous_approx(PreparedSimultaneous<B> prepared, LLLParams params = {})
 {
+    // ADL: finds boost::multiprecision::abs/round for MP types, std:: for built-ins.
+    using std::abs;
+    using std::round;
+
     auto lll_result = lll_reduce<B>(prepared.lattice, params);
     const std::size_t n = prepared.alpha.size();
 
     // The first column of the reduced basis: (q_scaled, p_1, …, p_n)
     const scalar_of<B> q_scaled = B::get(lll_result.reduced_basis, 0, 0);
-    const integer_of<B> q = static_cast<integer_of<B>>(std::round(q_scaled / prepared.scale));
+    const integer_of<B> q = static_cast<integer_of<B>>(round(q_scaled / prepared.scale));
 
     SimultApproxResult<B> result;
     result.denominator = q;
@@ -110,11 +117,11 @@ simultaneous_approx(PreparedSimultaneous<B> prepared, LLLParams params = {})
     scalar_of<B> max_err{0};
     for (std::size_t i = 0; i < n; ++i) {
         result.numerators[i] =
-            static_cast<integer_of<B>>(std::round(B::get(lll_result.reduced_basis, i + 1, 0)));
-        const scalar_of<B> err =
-            std::abs(static_cast<scalar_of<B>>(q) * prepared.alpha[i]
-                     - static_cast<scalar_of<B>>(result.numerators[i]));
-        max_err = std::max(max_err, err);
+            static_cast<integer_of<B>>(round(B::get(lll_result.reduced_basis, i + 1, 0)));
+        scalar_of<B> err = abs(
+            static_cast<scalar_of<B>>(q) * prepared.alpha[i]
+            - static_cast<scalar_of<B>>(result.numerators[i]));
+        if (err > max_err) max_err = err;
     }
     result.quality = max_err;
 
