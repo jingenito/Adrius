@@ -74,14 +74,21 @@ cₖ₊₁ = cₖ · 2^{−n(n+1)/4}
 
 This comes from Bosma & Smeets Lemma 3.4: the scale decays geometrically such that per-iteration quality improves by a constant factor depending only on n.
 
-#### Step 4: Rescale Basis
-Rescale only column 0 of the reduced basis:
+#### Step 4: Rescale Basis (warm start)
+`c_k` appears exclusively in row 0 of the lattice matrix.  Transitioning
+from Λ_k to Λ_{k+1} therefore requires scaling **row 0 of every column** by
+`c_{k+1}/c_k`:
 ```
-Lₖ₊₁[i, 0] ← B[i, 0] · (cₖ₊₁ / cₖ)
-Lₖ₊₁[i, j] ← B[i, j]   for j ≥ 1
+Lₖ₊₁[0, j] ← B[0, j] · (cₖ₊₁ / cₖ)   for all j = 0..n
+Lₖ₊₁[i, j] ← B[i, j]                  for i ≥ 1
 ```
 
-This keeps the basis "nearly reduced" for the next iteration, amortizing the cost of repeated LLL calls.
+Rows 1..n encode ℤ-linear combinations of the αᵢ, which are unchanged when
+the scale c_k changes.  Scaling column 0 (a common error) corrupts those rows
+and locks the extracted denominator at q = 1 for all subsequent iterations.
+
+This warm start leaves the basis nearly reduced for Λ_{k+1}, amortizing the
+cost of repeated LLL calls.
 
 ### 3. Termination
 
@@ -128,11 +135,11 @@ cₖ₊₁ / cₖ = (2^{−(k+1)n/4} / 2^{−kn/4})^{n+1}
 
 **Guard condition (added, not in paper):**
 ```cpp
-if (iter > 0 && prepared.scale < 1e-14)
+if (iter > 0 && prepared.scale * prepared.scale < params.lll.gso.zero_threshold)
     break;
 ```
 
-This prevents column 0 from shrinking to numerical noise, which would cause gram_schmidt to detect (false) linear dependence. In double precision, scales below 1e-14 are typically indistinguishable from zero.
+Comparing `c_k²` against `zero_threshold` (a squared-norm threshold) is dimensionally consistent.  When `c_k²` falls below the Gram-Schmidt linear-dependence threshold, column 0's squared norm would be indistinguishable from zero and LLL would throw `DomainError`.
 
 ### Two-Stage API
 
@@ -192,13 +199,13 @@ int main() {
 
 2. **Geometric Scale Decay**: 2^{−n(n+1)/4} per iteration ensures quality improves predictably and Bosma-Smeets bounds hold.
 
-3. **Selective Rescaling**: Only column 0 is rescaled between iterations, keeping the basis nearly reduced and amortizing LLL cost.
+3. **Row-0 Rescaling**: Row 0 of all columns is rescaled between iterations (not just column 0). This correctly maps Λ_k → Λ_{k+1} while preserving the ℤ-linear error rows, keeping the basis nearly reduced and amortizing LLL cost.
 
 4. **Move-Only State**: PreparedILLL<B> is move-only to prevent accidental state sharing and ensure proper cleanup.
 
 5. **Two-Stage API**: Preprocessing and iteration are separate, following Adrius design principles for composability and introspection.
 
-6. **Numerical Safeguards**: Check scale < 1e-14 before LLL to prevent floating-point underflow errors.
+6. **Numerical Safeguards**: Check `c_k² < zero_threshold` (squared, to match the GSO's squared-norm comparisons) before LLL to prevent floating-point underflow errors.
 
 ## References
 
