@@ -218,6 +218,18 @@ target_link_libraries(your_target PRIVATE adrius::adrius)
 
 See [`docs/design-decisions.md`](docs/design-decisions.md) for the full rationale behind every architectural choice.
 
+## Documentation
+
+| Document | What it covers |
+|---|---|
+| [`docs/getting-started.md`](docs/getting-started.md) | Installation, algorithm selection, params structs, backends, error handling |
+| [`docs/lll.md`](docs/lll.md) | LLL lattice reduction — math, API, Lovász updates |
+| [`docs/continued-fractions.md`](docs/continued-fractions.md) | CF expansion, convergents, best rational approximation |
+| [`docs/simultaneous.md`](docs/simultaneous.md) | One-shot simultaneous Diophantine approximation |
+| [`docs/illl-algorithm.md`](docs/illl-algorithm.md) | Iterated LLL (Bosma & Smeets 2010) — math, warm-start, guarantees |
+| [`docs/boost-multiprecision-backend.md`](docs/boost-multiprecision-backend.md) | Arbitrary-precision backend — setup, precision options, performance |
+| [`docs/design-decisions.md`](docs/design-decisions.md) | Full architectural rationale for every non-obvious choice |
+
 ## Dependencies
 
 | Dependency | Version | How |
