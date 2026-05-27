@@ -253,6 +253,15 @@ int main() {
 
 ---
 
+## Python bindings
+
+All public algorithms are also available from Python via optional pybind11
+bindings.  Build with `-DADRIUS_BUILD_PYTHON=ON` and see
+`docs/python-bindings.md` for the full API reference, build instructions, and
+test-running guide.
+
+---
+
 ## Further reading
 
 - `docs/lll.md` — LLL lattice basis reduction

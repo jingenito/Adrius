@@ -14,6 +14,7 @@ endif()
 # Options
 option(ADRIUS_BUILD_TESTS              "Build test suite"                          ON)
 option(ADRIUS_BUILD_EXAMPLES           "Build example programs"                    ON)
+option(ADRIUS_BUILD_PYTHON             "Build Python bindings (requires Python3)"  OFF)
 option(ADRIUS_USE_SYSTEM_EIGEN         "Use an installed Eigen3 (skip fetch)"      OFF)
 option(ADRIUS_ENABLE_BOOST_MULTIPRECISION "Enable Boost.Multiprecision backend"   OFF)
 option(ADRIUS_USE_SYSTEM_BOOST         "Use an installed Boost (skip fetch)"       OFF)
@@ -93,6 +94,11 @@ endif()
 # --- Examples ---
 if(ADRIUS_BUILD_EXAMPLES)
     add_subdirectory(examples)
+endif()
+
+# --- Python bindings ---
+if(ADRIUS_BUILD_PYTHON)
+    add_subdirectory(python)
 endif()
 
 # --- Install / find_package support ---
