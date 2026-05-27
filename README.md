@@ -182,6 +182,7 @@ cmake --install build
 |---|---|---|
 | `ADRIUS_BUILD_TESTS` | `ON` | Build GoogleTest suite |
 | `ADRIUS_BUILD_EXAMPLES` | `ON` | Build example programs |
+| `ADRIUS_BUILD_PYTHON` | `OFF` | Build Python bindings (requires Python 3 + pybind11) |
 | `ADRIUS_USE_SYSTEM_EIGEN` | `OFF` | Use an installed Eigen3 instead of fetching |
 | `ADRIUS_ENABLE_BOOST_MULTIPRECISION` | `OFF` | Enable Boost.Multiprecision arbitrary-precision backend |
 | `ADRIUS_USE_SYSTEM_BOOST` | `OFF` | Use an installed Boost instead of fetching (requires `ADRIUS_ENABLE_BOOST_MULTIPRECISION=ON`) |
@@ -228,6 +229,7 @@ See [`docs/design-decisions.md`](docs/design-decisions.md) for the full rational
 | [`docs/simultaneous.md`](docs/simultaneous.md) | One-shot simultaneous Diophantine approximation |
 | [`docs/illl-algorithm.md`](docs/illl-algorithm.md) | Iterated LLL (Bosma & Smeets 2010) — math, warm-start, guarantees |
 | [`docs/boost-multiprecision-backend.md`](docs/boost-multiprecision-backend.md) | Arbitrary-precision backend — setup, precision options, performance |
+| [`docs/python-bindings.md`](docs/python-bindings.md) | Python bindings — build, API reference, result types, tests |
 | [`docs/design-decisions.md`](docs/design-decisions.md) | Full architectural rationale for every non-obvious choice |
 
 ## Dependencies
